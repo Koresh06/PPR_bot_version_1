@@ -1,8 +1,9 @@
-from sqlalchemy import ForeignKey, String, BigInteger
+from sqlalchemy import ForeignKey, String, BigInteger, DateTime, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase, relationship
 from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine
 
 from typing import List
+import datetime
 import config
 
 
@@ -23,6 +24,8 @@ class Users(Base):
     
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     tg_id = mapped_column(BigInteger)
+    username: Mapped[str] = mapped_column()
+    bloc_user: Mapped[bool] = mapped_column(default=True)
     
     address_rel: Mapped[List['Address_FSm']] = relationship(back_populates='user_rel', cascade='all, delete')
 
@@ -45,6 +48,8 @@ class Address_FSm(Base):
     flat: Mapped[str] = mapped_column(String(5))
     full_name: Mapped[str] = mapped_column(String(50))
     telephone: Mapped[str] = mapped_column(String(15))
+    datetime: Mapped[str] = mapped_column(DateTime, default=datetime.datetime.utcnow())
+    
     user_fk: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
     region_fk: Mapped[str] = mapped_column(ForeignKey('JES_region.name', ondelete='CASCADE'))
     

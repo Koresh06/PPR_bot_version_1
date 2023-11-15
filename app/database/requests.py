@@ -3,11 +3,11 @@ from database.models import Users, Address_FSm, Violations, JESregion
 from sqlalchemy import select, update, delete
 
 
-async def add_new_user(tg_id):
+async def add_new_user(tg_id, username):
     async with async_session() as session:
-        user_query = await session.scalar(select(Users).where(Users.tg_id == tg_id))
+        user_query = await session.scalar(select(Users).where(Users.tg_id == tg_id, Users.username == username))
         if not user_query:
-            session.add(Users(tg_id = tg_id))
+            session.add(Users(tg_id = tg_id, username=username))
             await session.commit()
             return False
         
@@ -70,7 +70,7 @@ async def full_information_output_db(id_address, tg_id):
     async with async_session() as session:
         try:
             user_d = await session.scalar(select(Users).where(Users.tg_id == tg_id))
-            full_inform = await session.scalars(select(Address_FSm.street, Address_FSm.house, Address_FSm.flat, Address_FSm.full_name, Address_FSm.telephone).where(Address_FSm.id == int(id_address), Address_FSm.user_fk == user_d.id))
+            full_inform = await session.scalars(select(Address_FSm.street, Address_FSm.house, Address_FSm.flat, Address_FSm.full_name, Address_FSm.telephone, Address_FSm.datetime).where(Address_FSm.id == int(id_address), Address_FSm.user_fk == user_d.id))
             violations_d = await session.scalar(select(Violations.description).where(Violations.address == int(id_address)))
             full = full_inform._fetchall_impl()
             full.append(violations_d)
@@ -79,3 +79,37 @@ async def full_information_output_db(id_address, tg_id):
             print(exxit)
             return False
         
+#Администратор
+async def users_output():
+    async with async_session() as session:
+        users = await session.scalars(select(Users.tg_id))
+    return users
+        
+async def first_name(tg_id):
+    async with async_session() as session:
+        user = await session.scalar(select(Users.username).where(Users.tg_id == tg_id))
+    return user
+        
+async def check_block(tg_id):
+    async with async_session() as session:
+        check = await session.scalar(select(Users.bloc_user).where(Users.tg_id == tg_id))
+    return check
+
+async def update_block(tg_id):
+    async with async_session() as session:
+        block = await session.scalar(select(Users.bloc_user).where(Users.tg_id == tg_id))
+        print(block)
+        if block:
+            await session.execute(update(Users).where(Users.tg_id == int(tg_id)).values(bloc_user=0))
+            await session.commit()
+        else:
+            await session.execute(update(Users).where(Users.tg_id == int(tg_id)).values(bloc_user=1))
+            await session.commit()
+    
+
+#Блокировка пользователя (миделвари)
+async def check_block_user(tg_id):
+    async with async_session() as session:
+        block_user = await session.scalar(select(Users.bloc_user).where(Users.tg_id == tg_id))
+        print(block_user)
+    return block_user

@@ -1,9 +1,10 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import CommandStart
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
+from middlewares.middleware import WeekendCallbackMiddleware, WeekendMessageMiddleware
 from database.requests import *
 from keyboards.kb_inline import *
 from keyboards.kb_reply import *
@@ -11,7 +12,8 @@ from filters.filter_bot import *
 from lexicon import LEXICON
 
 router = Router()
-
+router.message.middleware(WeekendMessageMiddleware())
+router.callback_query.middleware(WeekendCallbackMiddleware())
 
 class Register_address(StatesGroup):
     region = State()
@@ -25,7 +27,7 @@ class Register_address(StatesGroup):
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext):
-    user = await add_new_user(message.from_user.id)
+    user = await add_new_user(message.from_user.id, message.from_user.first_name)
     if user:
         await message.answer(f'<b>Доброго времени суток</b> {message.from_user.first_name}', reply_markup=await kb_menu())
     else:
@@ -67,6 +69,7 @@ async def cmd_update_record(message: Message, state: FSMContext):
 async def reg_region(callback: CallbackQuery, state: FSMContext):
     await state.update_data(region=callback.data)
     await callback.answer()
+    await callback.message.delete()
     await callback.message.answer(text='<i>Укажите улицу:</i>', reply_markup=cancel)
     region = await state.get_data()
     if await set_region_db(region):
@@ -79,7 +82,7 @@ async def reg_region(callback: CallbackQuery, state: FSMContext):
 @router.message(Register_address.street)
 async def reg_street(message: Message, state: FSMContext):
     await state.update_data(street=message.text)
-    await message.answer('<i>Укажите номер дома:</i>', reply_markup=cancel)
+    await message.answer(text='<i>Укажите номер дома:</i>', reply_markup=cancel)
     await state.set_state(Register_address.house)
 
 
@@ -156,7 +159,7 @@ async def region_output(callback: CallbackQuery):
 @router.callback_query(IsDigitCallbackData())
 async def violations_output(callback: CallbackQuery):
     inform = await full_information_output_db(callback.data, callback.from_user.id)
-    await callback.message.answer(f'<b>Данные по выбранному адресу</b>\n\nАдрес: ул.<i><u>{inform[0][0]}, д.{inform[0][1]}, кв.{inform[0][2]}</u></i>\nФИО: <i><u>{inform[0][3]}</u></i>\nТелефон: <i><u>{inform[0][4]}</u></i>\n\n<b>Нарушения:</b> <tg-spoiler>{inform[1]}</tg-spoiler>')
+    await callback.message.answer(f'<b>Данные по указанному адресу</b>\n\nДата и время обследования: {str(inform[0][5])[0:19]}\n\n\nАдрес: <i><u>ул.{inform[0][0]}, д.{inform[0][1]}, кв.{inform[0][2]}</u></i>\nФИО: <i><u>{inform[0][3]}</u></i>\nТелефон: <i><u>{inform[0][4]}</u></i>\n\n<b>Нарушения:</b> <tg-spoiler>{inform[1]}</tg-spoiler>')
     await callback.answer()
     
     

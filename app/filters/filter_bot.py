@@ -17,7 +17,13 @@ class Output_addresses(BaseFilter):
         
     async def __call__(self, message: Message) -> bool:
         return message.text in self.title
+  
+class IsDigitCheckTg_id(BaseFilter):
+    async def __call__(self, callback: CallbackQuery) -> bool:
+        if callback.data.isdigit() and len(callback.data) == 10:
+            return True   
         
 class IsDigitCallbackData(BaseFilter):
     async def __call__(self, callback: CallbackQuery) -> bool:
         return callback.data.isdigit()
+    
